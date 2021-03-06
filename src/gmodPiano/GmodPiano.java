@@ -20,9 +20,9 @@ public class GmodPiano implements Receiver, ActionListener, NativeKeyListener{
 	private static final Logger log = Logger.getLogger(GlobalScreen.class.getPackage().getName());
 	int[] letters = new int[127]; //an array that maps notes to a button
 	int returnValue = 1;
-	int t1 = 8;
-	int t2 = 8;
-	int t3 = 8;
+	int t1 = 8; //timing between pressing shift and playing a not
+	int t2 = 8; //timing between pressing a note and releasing shift
+	int t3 = 8; //timing between pressing and releasing a note without shift
 	Robot robot = null;
 	JFrame frame;
 	JFileChooser fileChooser;
@@ -197,52 +197,16 @@ public class GmodPiano implements Receiver, ActionListener, NativeKeyListener{
 	
 	@Override
 	public void actionPerformed(ActionEvent event) {
+
 		if (event.getActionCommand() == "chooseFile"){
+			//@Override
+			//public void nativeKeyPressed(NativeKeyEvent e) {}
 			returnValue = fileChooser.showOpenDialog(frame);
 			if (returnValue == JFileChooser.APPROVE_OPTION) {
 				path = fileChooser.getSelectedFile();
 				choosenFile.setText(path.getName());	
 			}
-			
-		
-
-		}else if(event.getActionCommand() == "play") {
-			if (returnValue == JFileChooser.APPROVE_OPTION) {
-				try {
-		        	sequencer.close();
-		        	transmitter.close();
-				}catch(Exception e) {}
-				try {	
-					robot = new Robot();
-					sequence = MidiSystem.getSequence(path);
-			        sequencer = MidiSystem.getSequencer();
-			        sequencer.open();
-			        sequencer.setSequence(sequence);
-			        transmitter = sequencer.getTransmitter();
-			        sequencer.addMetaEventListener(new MetaEventListener() {
-			            @Override
-			            public void meta(MetaMessage metaMsg) {
-			                if (metaMsg.getType() == 0x2F) { //closing everything when track is ended
-			                	sequencer.close();
-			                	transmitter.close();
-			                	statusLabel.setText("Track ended");	
-			                }
-			            }
-			        }); 
-			        Thread.sleep(3000); //delay to let user tab back to the game
-			        transmitter.setReceiver(this);
-			        sequencer.start();
-			        statusLabel.setText("Playing");
-				}catch(Exception e) {}
-			}
-			
-		}else if(event.getActionCommand() == "stop") {
-			try {
-				robot.keyRelease(KeyEvent.VK_SHIFT);
-	        	sequencer.close();
-	        	transmitter.close();
-			}catch(Exception e) {}
-			statusLabel.setText("Player stopped");	
+					
 			
 		}else if(event.getActionCommand() == "ok") { //setting custom timings between key presses
 			try {
@@ -254,7 +218,53 @@ public class GmodPiano implements Receiver, ActionListener, NativeKeyListener{
 				statusLabel.setText("Only numbers are allowed");
 			}
 		}		
-	}	
+	}
+	
+	@Override
+	public void nativeKeyPressed(NativeKeyEvent e) {
+		if (e.getKeyCode() == NativeKeyEvent.VC_UP && (e.getModifiers() & NativeKeyEvent.ALT_MASK) != 0) { // Alt + arrow up to start playing			
+			System.out.println("Play");
+			try {
+	        	sequencer.close();
+	        	transmitter.close();
+			}catch(Exception er) {
+				er.printStackTrace();
+			}
+			try {	
+				robot = new Robot();
+				sequence = MidiSystem.getSequence(path);
+		        sequencer = MidiSystem.getSequencer();
+		        sequencer.open();
+		        sequencer.setSequence(sequence);
+		        transmitter = sequencer.getTransmitter();
+		        sequencer.addMetaEventListener(new MetaEventListener() {
+		            @Override
+		            public void meta(MetaMessage metaMsg) {
+		                if (metaMsg.getType() == 0x2F) { //closing everything when track is ended
+		                	sequencer.close();
+		                	transmitter.close();
+		                	statusLabel.setText("Track ended");	
+		                }
+		            }
+		        });
+		        transmitter.setReceiver(this);
+		        sequencer.start();
+		        statusLabel.setText("Playing");
+			}catch(Exception er) {
+				er.printStackTrace();
+			}
+			
+		}else if(e.getKeyCode() == NativeKeyEvent.VC_DOWN && (e.getModifiers() & NativeKeyEvent.ALT_MASK) != 0) { //Alt + arrow downt to stop playing
+			System.out.println("Stop");
+			try {
+				robot.keyRelease(KeyEvent.VK_SHIFT);
+	        	sequencer.close();
+	        	transmitter.close();
+			}catch(Exception err) {}
+			statusLabel.setText("Player stopped");	
+		}		
+	}
+	
 
 	@Override
 	public void send(MidiMessage message, long timestamp) {
@@ -272,8 +282,8 @@ public class GmodPiano implements Receiver, ActionListener, NativeKeyListener{
 							Thread.sleep(t2);
 		        			robot.keyRelease(KeyEvent.VK_SHIFT);
 		        			robot.keyRelease(letters[note]);
-		        		}else { //playing notes without shift on
-		        			robot.keyPress(letters[note]);
+		        		}else { 
+		        			robot.keyPress(letters[note]); //playing notes without shift on
 							Thread.sleep(t3);
 							robot.keyRelease(letters[note]);
 		        		}
@@ -286,27 +296,9 @@ public class GmodPiano implements Receiver, ActionListener, NativeKeyListener{
 	@Override
 	public void close() {}
 
-
-
 	@Override
-	public void nativeKeyPressed(NativeKeyEvent e) {
-		if (e.getKeyCode() == NativeKeyEvent.VC_UP && (e.getModifiers() & NativeKeyEvent.ALT_MASK) != 0) { // Alt + arrow up to start playing			
-			System.out.println("Play");
-			
-		}else if(e.getKeyCode() == NativeKeyEvent.VC_DOWN && (e.getModifiers() & NativeKeyEvent.ALT_MASK) != 0) { //Alt + arrow downt to stop playing
-			System.out.println("Stop");
-		}	
-		
-	}
-	@Override
-	public void nativeKeyTyped(NativeKeyEvent e) {
-		// TODO Auto-generated method stub
-		
-	}
+	public void nativeKeyTyped(NativeKeyEvent e) {}
 
 	@Override
-	public void nativeKeyReleased(NativeKeyEvent e) {
-		// TODO Auto-generated method stub
-		
-	}
+	public void nativeKeyReleased(NativeKeyEvent e) {}
 }
