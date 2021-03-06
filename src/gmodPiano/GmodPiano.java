@@ -98,7 +98,7 @@ public class GmodPiano implements Receiver, ActionListener {
 		letters[83] = 78;   //n
 		letters[84] = 77;   //m
 				
-		frame = new JFrame("Gmod Piano Player by MCkvadrat");
+		frame = new JFrame("Gmod Piano Player");
 		frame.setSize(510, 115);
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frame.setLocationRelativeTo(null);
