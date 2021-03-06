@@ -8,8 +8,16 @@ import java.awt.Robot;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.event.KeyEvent;
+import java.util.logging.ConsoleHandler;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import org.jnativehook.GlobalScreen;
+import org.jnativehook.NativeHookException;
+import org.jnativehook.keyboard.NativeKeyEvent;
+import org.jnativehook.keyboard.NativeKeyListener;
 
-public class GmodPiano implements Receiver, ActionListener {
+public class GmodPiano implements Receiver, ActionListener, NativeKeyListener{
+	private static final Logger log = Logger.getLogger(GlobalScreen.class.getPackage().getName());
 	int[] letters = new int[127]; //an array that maps notes to a button
 	int returnValue = 1;
 	int t1 = 8;
@@ -29,6 +37,21 @@ public class GmodPiano implements Receiver, ActionListener {
 	Transmitter transmitter;
 	
 	public static void main(String args[]) throws Exception {
+		log.setUseParentHandlers(false);
+        log.setLevel(Level.OFF);
+        ConsoleHandler handler = new ConsoleHandler();
+        handler.setLevel(Level.OFF);
+        log.addHandler(handler);
+        
+		try {
+			GlobalScreen.registerNativeHook();
+		}
+		catch (NativeHookException ex) {
+			System.err.println("There was a problem registering the native hook.");
+			System.err.println(ex.getMessage());
+			System.exit(1);
+		}
+		GlobalScreen.addNativeKeyListener(new GmodPiano());
 		GmodPiano g = new GmodPiano();
 		g.init();
 		g.close();
@@ -180,6 +203,8 @@ public class GmodPiano implements Receiver, ActionListener {
 				path = fileChooser.getSelectedFile();
 				choosenFile.setText(path.getName());	
 			}
+			
+		
 
 		}else if(event.getActionCommand() == "play") {
 			if (returnValue == JFileChooser.APPROVE_OPTION) {
@@ -260,4 +285,28 @@ public class GmodPiano implements Receiver, ActionListener {
 
 	@Override
 	public void close() {}
+
+
+
+	@Override
+	public void nativeKeyPressed(NativeKeyEvent e) {
+		if (e.getKeyCode() == NativeKeyEvent.VC_UP && (e.getModifiers() & NativeKeyEvent.ALT_MASK) != 0) { // Alt + arrow up to start playing			
+			System.out.println("Play");
+			
+		}else if(e.getKeyCode() == NativeKeyEvent.VC_DOWN && (e.getModifiers() & NativeKeyEvent.ALT_MASK) != 0) { //Alt + arrow downt to stop playing
+			System.out.println("Stop");
+		}	
+		
+	}
+	@Override
+	public void nativeKeyTyped(NativeKeyEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
+
+	@Override
+	public void nativeKeyReleased(NativeKeyEvent e) {
+		// TODO Auto-generated method stub
+		
+	}
 }
