@@ -1,5 +1,6 @@
 # GmodPiano
-A small java program i made to play midi files on a piano in Garry's mod 
+A small java program i made to play midi files on a piano in Garry's mod\
+Garry's mod plugin link https://steamcommunity.com/sharedfiles/filedetails/?id=104548572
 
 This program can play midi files and also connect to take input from midi devices
 ![filemode](https://user-images.githubusercontent.com/18397628/110246748-812a5800-7f71-11eb-8c8a-19c8f8e1cce7.png)
