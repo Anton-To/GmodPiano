@@ -21,18 +21,18 @@ import org.jnativehook.keyboard.NativeKeyListener;
 public class GmodPiano implements Receiver, ActionListener, NativeKeyListener{
 	private static final Logger log = Logger.getLogger(GlobalScreen.class.getPackage().getName());
 	static int[] letters = new int[127]; //an array that maps notes to a button
+	int note = 0;
 	int returnValue = 1;
-	int t1 = 4; //timing between pressing shift and playing a note
-	int t2 = 4; //timing between pressing a note and releasing shift
-	int t3 = 8; //timing between pressing and releasing a note without shift
+	int t1 = 8;  //delay between pressing shift and playing a note is played without shift - delay after playing a note
+	int t2 = 16; //delay between releasing shift and note
+	static int transpose = 0;
 	Robot robot = null;
 	JFileChooser fileChooser;
 	static JFrame frame;
+	JPanel panel;
 	static JTextField choosenFile;
 	JTextField t1F;
-	JTextField t2F;
-	JTextField t3F;
-	JPanel panel;
+	JTextField currentTranspose;
 	JButton selectSourse;
 	boolean filemode = true;
 	static MidiDevice.Info[] infos;
@@ -144,24 +144,41 @@ public class GmodPiano implements Receiver, ActionListener, NativeKeyListener{
 				
 		selectSourse = new JButton("Select file");
 		selectSourse.setBounds(10,10,100,25);
-		selectSourse.setMargin(new Insets(10,5,10,5));
+		selectSourse.setMargin(new Insets(0,0,0,0));
 		panel.add(selectSourse);
 		selectSourse.setActionCommand("selectSourse");
 		selectSourse.addActionListener(this);
 		
-		JButton okButton = new JButton("");
-		okButton.setToolTipText("Apply timings");
-		okButton.setBounds(465,40,20,25);
-		panel.add(okButton);
-		okButton.setActionCommand("ok");
-		okButton.addActionListener(this);
-		
 		JButton modeButton = new JButton("Mode");
 		modeButton.setToolTipText("Toggle between midi file input and midi keyboard input");
-		modeButton.setBounds(320,40,65,25);
+		modeButton.setBounds(395,40,65,25);
 		panel.add(modeButton);
 		modeButton.setActionCommand("toggleMode");
 		modeButton.addActionListener(this);
+		
+		JButton octaveUp = new JButton("+");
+		octaveUp.setToolTipText("Transpose one octave up");
+		octaveUp.setBounds(366,40,20,25);
+		octaveUp.setMargin(new Insets(0,0,0,0));
+		panel.add(octaveUp);
+		octaveUp.setActionCommand("octaveUp");
+		octaveUp.addActionListener(this);
+				
+		JButton octaveDown = new JButton("-");
+		octaveDown.setToolTipText("Transpose one octave down");
+		octaveDown.setBounds(310,40,20,25);
+		octaveDown.setMargin(new Insets(0,0,0,0));
+		panel.add(octaveDown);
+		octaveDown.setActionCommand("octaveDown");
+		octaveDown.addActionListener(this);
+		
+		currentTranspose = new JTextField(0);
+		currentTranspose.setToolTipText("Current transposition");
+		currentTranspose.setBounds(335,40,26,25);
+		currentTranspose.setHorizontalAlignment(JTextField.CENTER);
+		currentTranspose.setText((transpose > 0 ? "+" : "" ) + transpose);
+		currentTranspose.setEditable(false);
+		panel.add(currentTranspose);
 			
 		choosenFile = new JTextField(0);
 		choosenFile.setBounds(120,10,365,25);
@@ -169,25 +186,13 @@ public class GmodPiano implements Receiver, ActionListener, NativeKeyListener{
 		panel.add(choosenFile);
 				
 		t1F = new JTextField(0);
-		t1F.setBounds(390,40,20,26);
-		t1F.setToolTipText("Timing 1");
+		t1F.setBounds(465,40,20,26);
+		t1F.setToolTipText("Delay between pressing and releasing keys");
 		t1F.setText(Integer.toString(t1));
+		t1F.setActionCommand("t1Changed");
+		t1F.addActionListener(this);
 		t1F.setHorizontalAlignment(JTextField.CENTER);
 		panel.add(t1F);
-		
-		t2F = new JTextField(0);
-		t2F.setBounds(415,40,20,26);
-		t2F.setToolTipText("Timing 2");
-		t2F.setText(Integer.toString(t2));
-		t2F.setHorizontalAlignment(JTextField.CENTER);
-		panel.add(t2F);
-		
-		t3F = new JTextField(0);
-		t3F.setBounds(441,40,20,26);
-		t3F.setToolTipText("Timing 3");
-		t3F.setText(Integer.toString(t3));
-		t3F.setHorizontalAlignment(JTextField.CENTER);
-		panel.add(t3F);
 				
 		fileChooser = new JFileChooser();
 		fileChooser.setCurrentDirectory(new File("."));
@@ -201,69 +206,87 @@ public class GmodPiano implements Receiver, ActionListener, NativeKeyListener{
 	
 	@Override
 	public void actionPerformed(ActionEvent event) {
-		if (event.getActionCommand() == "selectSourse"){
-			if(filemode) {
-				returnValue = fileChooser.showOpenDialog(frame);
-				if (returnValue == JFileChooser.APPROVE_OPTION) {
-					path = fileChooser.getSelectedFile();
-					choosenFile.setText(path.getName());
-					statusLabel.setText("Press ALT + UP to play and ALT + DOWN to stop");
-				}
-			}else{
-				try {
-					device = MidiSystem.getMidiDevice(infos[deviceList.getSelectedIndex()]);
-					device.open();
-					transmitter = device.getTransmitter();
-					transmitter.setReceiver(this);
-					statusLabel.setText("Device " + device.getDeviceInfo() + " opened");
-				}catch (MidiUnavailableException e) {
-					statusLabel.setText("Unable to open device " + device.getDeviceInfo());
-					e.printStackTrace();
-				}
-			}
-										
-		}else if(event.getActionCommand() == "ok") { //setting custom timings between key presses
-			try {
-				t1 = Integer.parseInt(t1F.getText());
-				t2 = Integer.parseInt(t2F.getText());
-				t3 = Integer.parseInt(t3F.getText());
-				statusLabel.setText("Timings changed");
-			}catch(NumberFormatException e) {
-				statusLabel.setText("Only numbers are allowed");
-			}
-		}else if(event.getActionCommand() == "toggleMode") {
-			if(filemode){
-				statusLabel.setText("Swithed to midi input mode");
-				infos = MidiSystem.getMidiDeviceInfo();
-				for (int i = 0; i < infos.length; i++) {
+		switch(event.getActionCommand()) {	
+		case "selectSourse": // selecting midi source
+				if(filemode) {
+					returnValue = fileChooser.showOpenDialog(frame);
+					if (returnValue == JFileChooser.APPROVE_OPTION) {
+						path = fileChooser.getSelectedFile();
+						choosenFile.setText(path.getName());
+						statusLabel.setText("Press ALT + UP to play and ALT + DOWN to stop");
+					}
+				}else{
 					try {
-						device = MidiSystem.getMidiDevice(infos[i]);
-					} catch (MidiUnavailableException e) {
+						device = MidiSystem.getMidiDevice(infos[deviceList.getSelectedIndex()]);
+						device.open();
+						transmitter = device.getTransmitter();
+						transmitter.setReceiver(this);
+						statusLabel.setText("Device " + device.getDeviceInfo() + " opened");
+					}catch (MidiUnavailableException e) {
+						statusLabel.setText("Unable to open device " + device.getDeviceInfo());
 						e.printStackTrace();
 					}
 				}
-				panel.remove(choosenFile);
-				deviceList = new JComboBox<Object>(infos);
-				deviceList.setEditable(false);
-				deviceList.setBounds(120,10,365,25);
-		        deviceList.addActionListener(this);
-		        panel.add(deviceList);
-		        frame.repaint();
-		        selectSourse.setText("Select device");
-		        filemode = false;
-			}else{
+				break;
+				
+			case "toggleMode": //switching between device mode and file mode
+				if(filemode){
+					statusLabel.setText("Swithed to midi input mode");
+					infos = MidiSystem.getMidiDeviceInfo();
+					for (int i = 0; i < infos.length; i++) {
+						try {
+							device = MidiSystem.getMidiDevice(infos[i]);
+						} catch (MidiUnavailableException e) {
+							e.printStackTrace();
+						}
+					}
+					panel.remove(choosenFile);
+					deviceList = new JComboBox<Object>(infos);
+					deviceList.setEditable(false);
+					deviceList.setBounds(120,10,365,25);
+			        deviceList.addActionListener(this);
+			        panel.add(deviceList);
+			        frame.repaint();
+			        selectSourse.setText("Select device");
+			        filemode = false;		        		        		     		        
+				}else{
+					try {
+		        	transmitter.close();
+					}catch(Exception e) {}
+		        	device.close();
+					statusLabel.setText("Swithed to file mode");
+					panel.remove(deviceList);
+					panel.add(choosenFile);
+					frame.repaint();
+					selectSourse.setText("Select file");
+					filemode = true;
+				}
+				break;
+				
+			case "octaveUp": //transposing one octave up
+				if(transpose != 12) {
+					transpose = transpose + 12;					
+				}
+				currentTranspose.setText((transpose > 0 ? "+" : "" ) + transpose);	
+				break;
+				
+			case "octaveDown": //transposing one octave down
+				if(transpose != -12) {
+					transpose = transpose-12;
+				}
+				currentTranspose.setText((transpose > 0 ? "+" : "" ) + transpose);
+				break;
+				
+			case "t1Changed": //changing timings for key presses
 				try {
-	        	transmitter.close();
-				}catch(Exception e) {}
-	        	device.close();
-				statusLabel.setText("Swithed to file mode");
-				panel.remove(deviceList);
-				panel.add(choosenFile);
-				frame.repaint();
-				selectSourse.setText("Select file");
-				filemode = true;
-			}
-		}		
+					t1 = Integer.parseInt(t1F.getText());
+					t2 = t1*2;
+					statusLabel.setText("Timings changed");
+				}catch(NumberFormatException e) {
+					statusLabel.setText("Only numbers are allowed");
+				}
+				break;	
+		}
 	}	
 	
 	@Override
@@ -321,23 +344,21 @@ public class GmodPiano implements Receiver, ActionListener, NativeKeyListener{
 	    if(message instanceof ShortMessage) {
 	        ShortMessage sm = (ShortMessage) message;
 	        if (sm.getCommand() == ShortMessage.NOTE_ON) {
-	        	int note = sm.getData1();
 	        	if(letters[note] != 0) {
-	        		try {
-		        		if(note == 25 || note == 27 || note == 30 || note == 32 || note == 34 || note == 37 || note == 39 || note == 42 || note == 44 || note == 46 || note == 49 || note == 51 || note == 54 || note == 56 || note == 58 || note == 61 || note == 63 || note == 66 || note == 68 || note == 70 || note == 73 || note == 75 || note == 78 || note == 80 || note == 82) {
-		        			robot.keyPress(KeyEvent.VK_SHIFT); // some notes need to be played with shift on
-							Thread.sleep(t1);
-		        			robot.keyPress(letters[note]);
-							Thread.sleep(t2);
-		        			robot.keyRelease(KeyEvent.VK_SHIFT);
-		        			robot.keyRelease(letters[note]);
-		        		}else { 
-		        			robot.keyPress(letters[note]); //playing notes without shift on
-							Thread.sleep(t3);
-							robot.keyRelease(letters[note]);
-		        		}
-	        		}catch (InterruptedException e) {
-	        			e.printStackTrace();
+	        		robot.keyRelease(KeyEvent.VK_SHIFT);
+	        		robot.delay(t2);	        		
+	        		robot.keyRelease(letters[note]);
+	        	}
+	        	note = sm.getData1() + transpose;
+	        	if(letters[note] != 0) {
+	        		if(note == 25 || note == 27 || note == 30 || note == 32 || note == 34 || note == 37 || note == 39 || note == 42 || note == 44 || note == 46 || note == 49 || note == 51 || note == 54 || note == 56 || note == 58 || note == 61 || note == 63 || note == 66 || note == 68 || note == 70 || note == 73 || note == 75 || note == 78 || note == 80 || note == 82) {
+	        			robot.keyPress(KeyEvent.VK_SHIFT); // some notes need to be played with shift on
+	        			robot.delay(t1);
+	        			robot.keyPress(letters[note]);
+	        		}else { 
+	        			robot.keyPress(letters[note]); //playing notes without shift on
+	        			robot.delay(t1);
+
 	        		}
 	        	}
 	        }
