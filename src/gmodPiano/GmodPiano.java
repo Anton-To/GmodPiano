@@ -22,6 +22,7 @@ public class GmodPiano implements Receiver, ActionListener, NativeKeyListener{
 	private static final Logger log = Logger.getLogger(GlobalScreen.class.getPackage().getName());
 	static int[] letters = new int[127]; //an array that maps notes to a button
 	int note = 0;
+	int velocity = 0;
 	int returnValue = 1;
 	int t1 = 8;  //delay between pressing shift and playing a note is played without shift - delay after playing a note
 	int t2 = 16; //delay between releasing shift and note
@@ -30,11 +31,11 @@ public class GmodPiano implements Receiver, ActionListener, NativeKeyListener{
 	JFileChooser fileChooser;
 	static JFrame frame;
 	JPanel panel;
-	static JTextField choosenFile;
+	static JTextField chosenFile;
 	JTextField t1F;
 	JTextField currentTranspose;
-	JButton selectSourse;
-	boolean filemode = true;
+	JButton selectSource;
+	boolean fileMode = true;
 	static MidiDevice.Info[] infos;
 	static MidiDevice device;
 	static JComboBox<Object> deviceList;
@@ -44,7 +45,7 @@ public class GmodPiano implements Receiver, ActionListener, NativeKeyListener{
 	static Sequencer sequencer;
 	static Transmitter transmitter;
 	
-	public static void main(String args[]) throws Exception {
+	public static void main(String[] args) {
 		log.setUseParentHandlers(false);
 		log.setLevel(Level.OFF);
 		ConsoleHandler handler = new ConsoleHandler();
@@ -64,7 +65,7 @@ public class GmodPiano implements Receiver, ActionListener, NativeKeyListener{
 		g.close();
 	}
 	
-	public void init() throws Exception {
+	public void init() {
 		//mapping note ids to button id's
 		letters[24] = 49;   //1
 		letters[25] = 49;      //! 
@@ -142,12 +143,12 @@ public class GmodPiano implements Receiver, ActionListener, NativeKeyListener{
 	public void PlaceComponents(JPanel panel) {
 		panel.setLayout(null);
 				
-		selectSourse = new JButton("Select file");
-		selectSourse.setBounds(10,10,100,25);
-		selectSourse.setMargin(new Insets(0,0,0,0));
-		panel.add(selectSourse);
-		selectSourse.setActionCommand("selectSourse");
-		selectSourse.addActionListener(this);
+		selectSource = new JButton("Select file");
+		selectSource.setBounds(10,10,100,25);
+		selectSource.setMargin(new Insets(0,0,0,0));
+		panel.add(selectSource);
+		selectSource.setActionCommand("selectSource");
+		selectSource.addActionListener(this);
 		
 		JButton modeButton = new JButton("Mode");
 		modeButton.setToolTipText("Toggle between midi file input and midi keyboard input");
@@ -180,10 +181,10 @@ public class GmodPiano implements Receiver, ActionListener, NativeKeyListener{
 		currentTranspose.setEditable(false);
 		panel.add(currentTranspose);
 			
-		choosenFile = new JTextField(0);
-		choosenFile.setBounds(120,10,365,25);
-		choosenFile.setEditable(false);
-		panel.add(choosenFile);
+		chosenFile = new JTextField(0);
+		chosenFile.setBounds(120,10,365,25);
+		chosenFile.setEditable(false);
+		panel.add(chosenFile);
 				
 		t1F = new JTextField(0);
 		t1F.setBounds(465,40,20,26);
@@ -207,12 +208,12 @@ public class GmodPiano implements Receiver, ActionListener, NativeKeyListener{
 	@Override
 	public void actionPerformed(ActionEvent event) {
 		switch(event.getActionCommand()) {	
-		case "selectSourse": // selecting midi source
-				if(filemode) {
+		case "selectSource": // selecting midi source
+				if(fileMode) {
 					returnValue = fileChooser.showOpenDialog(frame);
 					if (returnValue == JFileChooser.APPROVE_OPTION) {
 						path = fileChooser.getSelectedFile();
-						choosenFile.setText(path.getName());
+						chosenFile.setText(path.getName());
 						statusLabel.setText("Press ALT + UP to play and ALT + DOWN to stop");
 					}
 				}else{
@@ -230,36 +231,36 @@ public class GmodPiano implements Receiver, ActionListener, NativeKeyListener{
 				break;
 				
 			case "toggleMode": //switching between device mode and file mode
-				if(filemode){
-					statusLabel.setText("Swithed to midi input mode");
+				if(fileMode){
+					statusLabel.setText("Switched to midi input mode");
 					infos = MidiSystem.getMidiDeviceInfo();
-					for (int i = 0; i < infos.length; i++) {
+					for (MidiDevice.Info info : infos) {
 						try {
-							device = MidiSystem.getMidiDevice(infos[i]);
+							device = MidiSystem.getMidiDevice(info);
 						} catch (MidiUnavailableException e) {
 							e.printStackTrace();
 						}
 					}
-					panel.remove(choosenFile);
-					deviceList = new JComboBox<Object>(infos);
+					panel.remove(chosenFile);
+					deviceList = new JComboBox<>(infos);
 					deviceList.setEditable(false);
 					deviceList.setBounds(120,10,365,25);
 			        deviceList.addActionListener(this);
 			        panel.add(deviceList);
 			        frame.repaint();
-			        selectSourse.setText("Select device");
-			        filemode = false;		        		        		     		        
+			        selectSource.setText("Select device");
+			        fileMode = false;		        		        		     		        
 				}else{
 					try {
 		        	transmitter.close();
 					}catch(Exception e) {}
 		        	device.close();
-					statusLabel.setText("Swithed to file mode");
+					statusLabel.setText("Switched to file mode");
 					panel.remove(deviceList);
-					panel.add(choosenFile);
+					panel.add(chosenFile);
 					frame.repaint();
-					selectSourse.setText("Select file");
-					filemode = true;
+					selectSource.setText("Select file");
+					fileMode = true;
 				}
 				break;
 				
@@ -291,7 +292,7 @@ public class GmodPiano implements Receiver, ActionListener, NativeKeyListener{
 	
 	@Override
 	public void nativeKeyPressed(NativeKeyEvent event) {
-		if(filemode) {
+		if(fileMode) {
 			if (event.getKeyCode() == NativeKeyEvent.VC_UP && (event.getModifiers() & NativeKeyEvent.ALT_MASK) != 0) { // Alt + arrow up to start playing			
 				try {
 		        	sequencer.close();
@@ -303,16 +304,13 @@ public class GmodPiano implements Receiver, ActionListener, NativeKeyListener{
 			        sequencer.open();
 			        sequencer.setSequence(sequence);
 			        transmitter = sequencer.getTransmitter();
-			        sequencer.addMetaEventListener(new MetaEventListener() {
-			            @Override
-			            public void meta(MetaMessage metaMsg) {
-			                if (metaMsg.getType() == 0x2F) { //closing everything when track is ended
-		                		sequencer.close();
-		                		transmitter.close();
-		                		statusLabel.setText("Track ended");	
-			                }
-			            }
-			        });
+			        sequencer.addMetaEventListener(metaMsg -> {
+						if (metaMsg.getType() == 0x2F) { //closing everything when track is ended
+							sequencer.close();
+							transmitter.close();
+							statusLabel.setText("Track ended");
+						}
+					});
 			        Thread.sleep(500);
 			        transmitter.setReceiver(this);
 			        sequencer.start();
@@ -320,12 +318,16 @@ public class GmodPiano implements Receiver, ActionListener, NativeKeyListener{
 				}catch(Exception e) {
 					e.printStackTrace();
 				}				
-			}else if(event.getKeyCode() == NativeKeyEvent.VC_DOWN && (event.getModifiers() & NativeKeyEvent.ALT_MASK) != 0) { //Alt + arrow downt to stop playing
+			}else if(event.getKeyCode() == NativeKeyEvent.VC_DOWN && (event.getModifiers() & NativeKeyEvent.ALT_MASK) != 0) { //Alt + arrow down to stop playing
 				try {
-					robot.keyRelease(KeyEvent.VK_SHIFT);
-		        	sequencer.close();
-		        	transmitter.close();
-				}catch(Exception e) {}
+					//for(int i=24; i <= 84; i++){
+						//robot.keyRelease();
+					//}
+					sequencer.close();
+					transmitter.close();
+				}catch(Exception e) {
+					e.printStackTrace();
+				}
 				statusLabel.setText("Player stopped");	
 			}
 		}		
@@ -343,6 +345,7 @@ public class GmodPiano implements Receiver, ActionListener, NativeKeyListener{
 		}
 	    if(message instanceof ShortMessage) {
 	        ShortMessage sm = (ShortMessage) message;
+			velocity = sm.getData2();
 	        if (sm.getCommand() == ShortMessage.NOTE_ON) {
 	        	if(letters[note] != 0) {
 	        		robot.keyRelease(KeyEvent.VK_SHIFT);
@@ -350,7 +353,7 @@ public class GmodPiano implements Receiver, ActionListener, NativeKeyListener{
 	        		robot.keyRelease(letters[note]);
 	        	}
 	        	note = sm.getData1() + transpose;
-	        	if(letters[note] != 0) {
+	        	if(letters[note] != 0 && velocity != 0) { //velocity != 0
 	        		if(note == 25 || note == 27 || note == 30 || note == 32 || note == 34 || note == 37 || note == 39 || note == 42 || note == 44 || note == 46 || note == 49 || note == 51 || note == 54 || note == 56 || note == 58 || note == 61 || note == 63 || note == 66 || note == 68 || note == 70 || note == 73 || note == 75 || note == 78 || note == 80 || note == 82) {
 	        			robot.keyPress(KeyEvent.VK_SHIFT); // some notes need to be played with shift on
 	        			robot.delay(t1);

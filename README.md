@@ -3,7 +3,7 @@ A small java program i made to play midi files on a piano in Garry's mod.\
 Garry's mod plugin link https://steamcommunity.com/sharedfiles/filedetails/?id=104548572
 
 This program can play midi files and also connect to take input from midi devices.
-![filemode](https://user-images.githubusercontent.com/18397628/110494810-9b447180-80fc-11eb-85be-b46b93f27b3d.png)\
+![fileMode](https://user-images.githubusercontent.com/18397628/110494810-9b447180-80fc-11eb-85be-b46b93f27b3d.png)\
 ![devicemode](https://user-images.githubusercontent.com/18397628/110494820-9da6cb80-80fc-11eb-9a13-1076b98cc114.png)
 
 * Notes can be transposed one octave up or down using "+" and "-" buttons.
