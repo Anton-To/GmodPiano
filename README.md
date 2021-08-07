@@ -8,6 +8,6 @@ This program can play midi files and also connect to take input from midi device
 
 * Notes can be transposed one octave up or down using "+" and "-" buttons.
 * Mode button toggles between file mode where you can select a file to be played and device mode where you can connect a physical midi instrument and use it to control an in-game piano.
-* Number on bottom left of the window is a delay between key presses. Incresing it might improve playing quality on servers with high latency.
+* Number on bottom right of the window is a delay between key presses. Incresing it might improve playing quality on servers with high latency.
 
 I'm not a professional programmer so plese dont mind the code quality.
