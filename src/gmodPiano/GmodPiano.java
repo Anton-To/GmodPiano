@@ -253,7 +253,9 @@ public class GmodPiano implements Receiver, ActionListener, NativeKeyListener{
 				}else{
 					try {
 		        	transmitter.close();
-					}catch(Exception e) {}
+					}catch(Exception e) {
+						e.printStackTrace();
+					}
 		        	device.close();
 					statusLabel.setText("Switched to file mode");
 					panel.remove(deviceList);
@@ -297,7 +299,9 @@ public class GmodPiano implements Receiver, ActionListener, NativeKeyListener{
 				try {
 		        	sequencer.close();
 		        	transmitter.close();
-				}catch(Exception e) {}
+				}catch(Exception e) {
+					e.printStackTrace();
+				}
 				try {	
 					sequence = MidiSystem.getSequence(path);
 					sequencer = MidiSystem.getSequencer();
@@ -320,9 +324,6 @@ public class GmodPiano implements Receiver, ActionListener, NativeKeyListener{
 				}				
 			}else if(event.getKeyCode() == NativeKeyEvent.VC_DOWN && (event.getModifiers() & NativeKeyEvent.ALT_MASK) != 0) { //Alt + arrow down to stop playing
 				try {
-					//for(int i=24; i <= 84; i++){
-						//robot.keyRelease();
-					//}
 					sequencer.close();
 					transmitter.close();
 				}catch(Exception e) {
@@ -353,7 +354,7 @@ public class GmodPiano implements Receiver, ActionListener, NativeKeyListener{
 	        		robot.keyRelease(letters[note]);
 	        	}
 	        	note = sm.getData1() + transpose;
-	        	if(letters[note] != 0 && velocity != 0) { //velocity != 0
+	        	if(letters[note] != 0 && velocity != 0) {
 	        		if(note == 25 || note == 27 || note == 30 || note == 32 || note == 34 || note == 37 || note == 39 || note == 42 || note == 44 || note == 46 || note == 49 || note == 51 || note == 54 || note == 56 || note == 58 || note == 61 || note == 63 || note == 66 || note == 68 || note == 70 || note == 73 || note == 75 || note == 78 || note == 80 || note == 82) {
 	        			robot.keyPress(KeyEvent.VK_SHIFT); // some notes need to be played with shift on
 	        			robot.delay(t1);
