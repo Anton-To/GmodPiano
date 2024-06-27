@@ -7,13 +7,13 @@ import java.util.Set;
 import java.util.TreeSet;
 
 
-public class KeyPresser implements Runnable {
-    static Robot robot;
-    static int[] letters = new int[127];
-    static Set<Integer> notesRequiringShift;
-    static int previousNote;
-    static boolean shiftPressed = false;
-    int timing = 8;
+public class KeyPresser {
+    private static final Robot robot;
+    private static final int[] letters = new int[127];
+    private static final Set<Integer> notesRequiringShift;
+    private static int transpose = 0;
+    private static int timing = 8;
+    private static boolean shiftPressed = false;
 
     static {
         try {
@@ -88,36 +88,62 @@ public class KeyPresser implements Runnable {
         letters[84] = 77;   //m
     }
 
-    public void run() {}
+    public void press(int note, boolean noteOn) {
+        int transposedNote = note + transpose;
+        int noteKey = letters[transposedNote];
 
-    public void press(int note) {
-        int noteKey = letters[note];
         if (noteKey != 0) {
-            if (notesRequiringShift.contains(note)) {
-                if (!shiftPressed) {
-                    robot.keyPress(KeyEvent.VK_SHIFT);
-                    shiftPressed = true;
+            boolean noteNeedsShift = notesRequiringShift.contains(note);
+            if(noteOn){
+                if (noteNeedsShift) {
+                    if (!shiftPressed) {
+                        robot.keyPress(KeyEvent.VK_SHIFT);
+                        shiftPressed = true;
+                        robot.delay(timing);
+                    }
+                } else {
+                    if (shiftPressed) {
+                        robot.keyRelease(KeyEvent.VK_SHIFT);
+                        shiftPressed = false;
+                        robot.delay(timing);
+                    }
                 }
-            } else if (shiftPressed) {
-                robot.keyRelease(KeyEvent.VK_SHIFT);
-                shiftPressed = false;
+                robot.keyPress(noteKey);
+                robot.delay(timing);
+            } else {
+                robot.keyRelease(noteKey);
+                robot.delay(timing);
             }
-
-            if (previousNote != 0) {
-                robot.keyRelease(previousNote);
-            }
-            robot.delay(timing);
-            robot.keyPress(noteKey);
-            previousNote = noteKey;
         }
     }
 
-    public void updateTimings(int timing) {
-        this.timing = timing;
+    public void updateTimings(int newTiming) {
+        timing = newTiming;
     }
 
     public int getTiming() {
-        return this.timing;
+        return timing;
+    }
+
+    public void setTranspose(boolean up) {
+
+        if (up) {
+            if (transpose != 12) {
+                transpose = transpose + 12;
+            }
+        } else {
+            if (transpose != -12) {
+                transpose = transpose - 12;
+            }
+        }
+    }
+
+    public void resetTranspose() {
+        transpose = 0;
+    }
+
+    public String getTranspose() {
+        return (transpose > 0 ? "+" : "") + transpose;
     }
 }
 

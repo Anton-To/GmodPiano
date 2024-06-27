@@ -1,9 +1,9 @@
 package piano;
 
-import org.jnativehook.GlobalScreen;
-import org.jnativehook.NativeHookException;
-import org.jnativehook.keyboard.NativeKeyEvent;
-import org.jnativehook.keyboard.NativeKeyListener;
+import com.github.kwhat.jnativehook.GlobalScreen;
+import com.github.kwhat.jnativehook.NativeHookException;
+import com.github.kwhat.jnativehook.keyboard.NativeKeyEvent;
+import com.github.kwhat.jnativehook.keyboard.NativeKeyListener;
 
 import javax.sound.midi.*;
 import javax.swing.*;
@@ -15,10 +15,7 @@ import java.awt.event.KeyEvent;
 import java.io.File;
 
 public class GmodPiano implements Receiver, ActionListener, NativeKeyListener {
-    int velocity = 0;
-    int returnValue = 1;
     int[] keysToRelease = {49, 50, 51, 52, 53, 53, 54, 55, 56, 57, 48, 81, 87, 69, 82, 84, 89, 85, 73, 79, 80, 65, 83, 68, 70, 71, 72, 74, 75, 76, 90, 88, 67, 86, 66, 78, 77};
-    static int transpose = 0;
     JFileChooser fileChooser;
     static JFrame frame;
     JPanel panel;
@@ -40,7 +37,7 @@ public class GmodPiano implements Receiver, ActionListener, NativeKeyListener {
 
     public GmodPiano() throws AWTException {}
 
-    public static void main(String[] args) throws AWTException, NativeHookException {
+    public static void main(String[] args) throws NativeHookException, AWTException {
         try {
             GlobalScreen.registerNativeHook();
         } catch (NativeHookException e) {
@@ -54,8 +51,6 @@ public class GmodPiano implements Receiver, ActionListener, NativeKeyListener {
     }
 
     public void init() {
-        keyPresser.run();
-
         frame = new JFrame("Gmod Piano Player");
         frame.setSize(510, 115);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
@@ -104,7 +99,7 @@ public class GmodPiano implements Receiver, ActionListener, NativeKeyListener {
         currentTranspose.setToolTipText("Current transposition");
         currentTranspose.setBounds(335, 40, 26, 25);
         currentTranspose.setHorizontalAlignment(JTextField.CENTER);
-        currentTranspose.setText((transpose > 0 ? "+" : "") + transpose);
+        currentTranspose.setText(keyPresser.getTranspose());
         currentTranspose.setEditable(false);
         panel.add(currentTranspose);
 
@@ -136,8 +131,10 @@ public class GmodPiano implements Receiver, ActionListener, NativeKeyListener {
         String command = event.getActionCommand();
         if (command == "selectSource") {
             if (fileMode) {
-                returnValue = fileChooser.showOpenDialog(frame);
+                int returnValue = fileChooser.showOpenDialog(frame);
                 if (returnValue == JFileChooser.APPROVE_OPTION) {
+                    keyPresser.resetTranspose();
+                    currentTranspose.setText(keyPresser.getTranspose());
                     path = fileChooser.getSelectedFile();
                     chosenFile.setText(path.getName());
                     statusLabel.setText("Press ALT + UP to play and ALT + DOWN to stop");
@@ -186,16 +183,13 @@ public class GmodPiano implements Receiver, ActionListener, NativeKeyListener {
             }
         } else if (command == "timingChanged") {
             keyPresser.updateTimings(Integer.parseInt(t1F.getText()));
+            statusLabel.setText("Timings updated");
         } else if (command == "octaveUp") {
-            if (transpose != 12) {
-                transpose = transpose + 12;
-            }
-            currentTranspose.setText((transpose > 0 ? "+" : "") + transpose);
+            keyPresser.setTranspose(true);
+            currentTranspose.setText(keyPresser.getTranspose());
         } else if (command == "octaveDown") {
-            if (transpose != -12) {
-                transpose = transpose - 12;
-            }
-            currentTranspose.setText((transpose > 0 ? "+" : "") + transpose);
+            keyPresser.setTranspose(false);
+            currentTranspose.setText(keyPresser.getTranspose());
         }
     }
 
@@ -249,25 +243,25 @@ public class GmodPiano implements Receiver, ActionListener, NativeKeyListener {
     public void send(MidiMessage message, long timestamp) {
         if (message instanceof ShortMessage) {
             ShortMessage sm = (ShortMessage) message;
-            velocity = sm.getData2();
+            int velocity = sm.getData2();
+            int note = sm.getData1();
+            int command = sm.getCommand();
 
-            if (sm.getCommand() == ShortMessage.NOTE_ON && velocity != 0) {
-                int note = sm.getData1() + transpose;
-                keyPresser.press(note);
+            if (command == ShortMessage.NOTE_ON) {
+                keyPresser.press(note, velocity > 0);
+            } else if (command == ShortMessage.NOTE_OFF) {
+                keyPresser.press(note, false);
             }
         }
     }
 
     @Override
-    public void close() {
-    }
+    public void close() {}
 
     @Override
-    public void nativeKeyTyped(NativeKeyEvent e) {
-    }
+    public void nativeKeyTyped(NativeKeyEvent e) {}
 
     @Override
-    public void nativeKeyReleased(NativeKeyEvent e) {
-    }
+    public void nativeKeyReleased(NativeKeyEvent e) {}
 }
 
